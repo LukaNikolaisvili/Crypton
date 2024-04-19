@@ -5,6 +5,7 @@ import requests
 import decimal
 import pandas as pd
 import ccxt
+import altair as alt
 
 # Initialize Web3
 web3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/0ce4b7eb2c8649ff8e0f62708735089f'))
@@ -13,6 +14,20 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def get_latest_block_number():
     return web3.eth.block_number
+
+def get_network_statistics():
+    block_number = web3.eth.block_number
+    last_block = web3.eth.get_block(block_number)
+    timestamp_last_block = last_block.timestamp
+    block_time = timestamp_last_block - web3.eth.get_block(block_number - 50).timestamp
+    transactions_last_hour = web3.eth.get_block_transaction_count(block_number) - web3.eth.get_block_transaction_count(block_number - 3600 // block_time)
+    return block_time, transactions_last_hour
+
+def get_token_information(token_address):
+    response = requests.get(f'https://api.ethplorer.io/getTokenInfo/{token_address}?apiKey=freekey')
+    if response.status_code == 200:
+        data = response.json()
+        return data
 
 def get_transaction(tx_hash):
     return web3.eth.get_transaction(tx_hash)
@@ -67,9 +82,8 @@ def get_ethereum_historical_prices(exchange='binance', symbol='ETH/USDT', timefr
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
     return df
 
-# Example usage:
-ethereum_prices = get_ethereum_historical_prices()
-print(ethereum_prices)
+
+
 
 
 st.sidebar.title('Navigation')
@@ -85,7 +99,27 @@ if app_mode == 'Home':
         ethereum_prices = get_ethereum_historical_prices()
         if ethereum_prices is not None:
             st.write("Historical Ethereum Prices:")
-            st.write(ethereum_prices)
+            ethereum_prices = get_ethereum_historical_prices()
+
+# Convert timestamp to datetime for Altair plot
+            ethereum_prices['Timestamp'] = pd.to_datetime(ethereum_prices['Timestamp'], unit='ms')
+
+            # Create Altair chart
+            chart = alt.Chart(ethereum_prices).mark_line().encode(
+                x='Timestamp',
+                y='Close',
+                tooltip=['Timestamp', 'Close']
+            ).properties(
+                width=800,
+                height=400
+            ).interactive()
+
+            st.title('Historical Ethereum Prices')
+            st.altair_chart(chart)
+
+            # Example usage:
+            ethereum_prices = get_ethereum_historical_prices()
+            print(ethereum_prices)
         else:
             st.error("Failed to fetch historical Ethereum prices.")
             
@@ -95,6 +129,10 @@ if app_mode == 'Home':
 
 elif app_mode == 'Blockchain Info':
     st.title('Blockchain Information')
+    block_time, transactions_last_hour = get_network_statistics()
+    st.write(f"Block Time: {block_time} seconds")
+    st.write(f"Transactions in the Last Hour: {transactions_last_hour}")
+    
     if st.button('Get Latest Block Number'):
         block_number = get_latest_block_number()
         st.write(f"Latest Block Number: {block_number}")
