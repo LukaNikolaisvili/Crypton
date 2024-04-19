@@ -1,0 +1,10 @@
+[theme]
+primaryColor = "#E694FF"
+backgroundColor = "#00152B"
+secondaryBackgroundColor = "#0083B8"
+textColor = "#FFF"
+font = "monospace"
+buttonColor = "#FF6F61"
+buttonHoverColor = "#FFB67D"
+linkColor = "#66C4D4"
+linkHoverColor = "#00FFD1"
