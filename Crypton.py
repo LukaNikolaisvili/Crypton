@@ -6,6 +6,7 @@ import decimal
 import pandas as pd
 import ccxt
 import altair as alt
+import configparser
 
 # Initialize Web3
 web3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/0ce4b7eb2c8649ff8e0f62708735089f'))
@@ -149,18 +150,55 @@ elif app_mode == 'Transaction Details':
 
 
 elif app_mode == 'Settings':
-    st.title('Settings')
     
+   # Load config file
+    config = configparser.ConfigParser()
+    config.optionxform = str  # Preserve the case of configuration keys
+    config.read('.streamlit/config.toml')
+
+    # Settings
+    st.title('Settings')
+
+    # Retrieve background color from config and ensure it's in the correct format
+    bg_color_config = config['theme']['backgroundColor']
+    bg_color_default = bg_color_config if bg_color_config.startswith('#') else '#FFFFFF'
+    
+    text_color_config = config['theme']['textColor']
+    text_color_default = text_color_config if text_color_config.startswith('#') else '#FFFFFF'
+
     # Background Color Selection
-    bg_color = st.color_picker('Select Background Color', '#FFFFFF')
+    bg_color = st.color_picker('Select Background Color', bg_color_default)
     st.write(f'You selected background color: {bg_color}')
+
+    text_color = st.color_picker('Select text Color', text_color_default)
+    st.write(f'You selected background color: {text_color}')
+
     
     # Language Selection
     language = st.selectbox('Select Language', ['English', 'Spanish', 'French'])
     st.write(f'You selected language: {language}')
-    
+
     # Apply Settings Button
     if st.button('Apply Settings'):
-        st.session_state.language = language
-        st.markdown("----")
-        st.markdown("## Settings Applied Successfully!")
+        # Update config with new background color
+        config['theme']['backgroundColor'] = f'"{bg_color}"'  # Enclose bg_color in double quotes
+        config['theme']['textColor'] = f'"{text_color}"'  # Enclose bg_color in double quotes
+        
+        config['theme']['language'] = f'"{language}"'
+        with open('.streamlit/config.toml', 'w') as configfile:
+            config.write(configfile)
+        
+        # Display a success message
+        st.success("Settings Applied Successfully!")
+        
+    if(st.button('reset to defaults')):
+        config['theme']['backgroundColor'] = f'"{"#00152B"}"'  # Enclose bg_color in double quotes
+        config['theme']['textColor'] = f'"{"#FFF"}"'  # Enclose bg_color in double quotes
+        
+        config['theme']['language'] = f'"{language}"'
+        with open('.streamlit/config.toml', 'w') as configfile:
+            config.write(configfile)
+        
+        # Display a success message
+            st.success("Reseted to default settings Successfully!")
+    
