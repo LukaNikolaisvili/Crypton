@@ -7,6 +7,16 @@ import pandas as pd
 import ccxt
 import altair as alt
 import configparser
+from googletrans import Translator, LANGUAGES
+
+
+# Initialize session state variables at the beginning of your script
+if 'backgroundColor' not in st.session_state:
+    st.session_state['backgroundColor'] = '#00152B'  # Default background color
+if 'text_color' not in st.session_state:
+    st.session_state['text_color'] = '#FFFFFF'  # Default text color
+if 'language' not in st.session_state:
+    st.session_state['language'] = 'en'  # Default to English
 
 # Initialize Web3
 web3 = Web3(Web3.HTTPProvider('https://mainnet.infura.io/v3/0ce4b7eb2c8649ff8e0f62708735089f'))
@@ -23,6 +33,26 @@ def get_network_statistics():
     block_time = timestamp_last_block - web3.eth.get_block(block_number - 50).timestamp
     transactions_last_hour = web3.eth.get_block_transaction_count(block_number) - web3.eth.get_block_transaction_count(block_number - 3600 // block_time)
     return block_time, transactions_last_hour
+
+
+def get_blockchain_statistics():
+    latest = web3.eth.get_block('latest')
+    block_time = latest.timestamp - web3.eth.get_block(latest.number - 1).timestamp
+
+    # Sum the number of transactions in the last 10 blocks
+    total_transactions = sum(len(web3.eth.get_block(i).transactions) for i in range(latest.number - 9, latest.number + 1))
+
+    avg_gas_price = web3.eth.gas_price
+    difficulty = latest.difficulty
+    hash_rate = difficulty / block_time if block_time > 0 else 0
+
+    return {
+        "block_time": block_time,
+        "transactions_last_10_blocks": total_transactions,
+        "average_gas_price": avg_gas_price,
+        "difficulty": difficulty,
+        "hash_rate": hash_rate
+    }
 
 def get_token_information(token_address):
     response = requests.get(f'https://api.ethplorer.io/getTokenInfo/{token_address}?apiKey=freekey')
@@ -70,7 +100,12 @@ def get_transaction_safe(tx_hash):
             return enhanced_transaction
     return None
 
+translator = Translator()
 
+def translate_text(text, dest_language):
+    if dest_language in LANGUAGES:
+        return translator.translate(text, dest=dest_language).text
+    return text
 
 # Function to fetch historical Ethereum prices
 def get_ethereum_historical_prices(exchange='binance', symbol='ETH/USDT', timeframe='1d'):
@@ -82,10 +117,6 @@ def get_ethereum_historical_prices(exchange='binance', symbol='ETH/USDT', timefr
     df = pd.DataFrame(ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
     return df
-
-
-
-
 
 st.sidebar.title('Navigation')
 app_mode = st.sidebar.selectbox('Choose the app section',
@@ -112,8 +143,11 @@ if app_mode == 'Home':
                 tooltip=['Timestamp', 'Close']
             ).properties(
                 width=800,
-                height=400
+                height=400,
+                background=st.session_state['backgroundColor']
             ).interactive()
+
+
 
             st.title('Historical Ethereum Prices')
             st.altair_chart(chart)
@@ -130,9 +164,12 @@ if app_mode == 'Home':
 
 elif app_mode == 'Blockchain Info':
     st.title('Blockchain Information')
-    block_time, transactions_last_hour = get_network_statistics()
-    st.write(f"Block Time: {block_time} seconds")
-    st.write(f"Transactions in the Last Hour: {transactions_last_hour}")
+    stats = get_blockchain_statistics()
+    st.write(f"Block Time: {stats['block_time']} seconds")
+    st.write(f"Transactions in Last 10 Blocks: {stats['transactions_last_10_blocks']}")
+    st.write(f"Average Gas Price: {stats['average_gas_price']} Wei")
+    st.write(f"Current Mining Difficulty: {stats['difficulty']}")
+    st.write(f"Network Hash Rate: {stats['hash_rate']} hashes/second")
     
     if st.button('Get Latest Block Number'):
         block_number = get_latest_block_number()
@@ -150,6 +187,7 @@ elif app_mode == 'Transaction Details':
 
 
 elif app_mode == 'Settings':
+    
     
    # Load config file
     config = configparser.ConfigParser()
@@ -175,7 +213,7 @@ elif app_mode == 'Settings':
 
     
     # Language Selection
-    language = st.selectbox('Select Language', ['English', 'Spanish', 'French'])
+    language = st.selectbox('Select Language', ['English', 'Spanish', 'French'], index=st.session_state.get('lang_index', 0))
     st.write(f'You selected language: {language}')
 
     # Apply Settings Button
@@ -183,13 +221,23 @@ elif app_mode == 'Settings':
         # Update config with new background color
         config['theme']['backgroundColor'] = f'"{bg_color}"'  # Enclose bg_color in double quotes
         config['theme']['textColor'] = f'"{text_color}"'  # Enclose bg_color in double quotes
-        
         config['theme']['language'] = f'"{language}"'
+        
         with open('.streamlit/config.toml', 'w') as configfile:
             config.write(configfile)
-        
+            
         # Display a success message
         st.success("Settings Applied Successfully!")
+        
+        st.experimental_rerun()
+    
+    if 'background_color' not in st.session_state:
+        st.session_state['background_color'] = '#00152B'  # Default value
+    if 'text_color' not in st.session_state:
+        st.session_state['text_color'] = '#FFFFFF'  # Default value
+    if 'language' not in st.session_state:
+        st.session_state['language'] = 'en'  # Default language
+
         
     if(st.button('reset to defaults')):
         config['theme']['backgroundColor'] = f'"{"#00152B"}"'  # Enclose bg_color in double quotes
@@ -201,4 +249,6 @@ elif app_mode == 'Settings':
         
         # Display a success message
             st.success("Reseted to default settings Successfully!")
-    
+            import threading as thread
+            
+            st.rerun()
