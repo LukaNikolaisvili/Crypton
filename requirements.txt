@@ -16,4 +16,3 @@ krakenex
 pykrakenapi
 configparser
 csv
-csv1
