@@ -2,7 +2,6 @@ import streamlit as st
 from web3 import Web3
 import logging
 import requests
-import decimal
 import pandas as pd
 import ccxt
 import altair as alt
@@ -518,9 +517,9 @@ else:
             rate_usd = get_eth_to_currency_rate("USD")
             rate_eur = get_eth_to_currency_rate("EUR")
             if rate_usd:
-                value_usd = decimal.Decimal(value_eth) * decimal.Decimal(rate_usd)
+                value_usd = (value_eth) * (rate_usd)
             if rate_eur:
-                value_eur = decimal.Decimal(value_eth) * decimal.Decimal(rate_eur)
+                value_eur = (value_eth) * (rate_eur)
                 enhanced_transaction = {
                     "hash": transaction["hash"],
                     "from": transaction["from"],
