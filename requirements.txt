@@ -10,7 +10,7 @@ googletrans==4.0.0-rc1
 psycopg2-binary==2.9.9
 os-win==2.2.1
 numpy==1.25.1
-sklearn==1.0.2
+sklearn
 decimal==1.70
 krakenex==2.1.0
 pykrakenapi==0.3.1
