@@ -11,7 +11,6 @@ psycopg2-binary==2.9.9
 os-win==2.2.1
 numpy==1.25.1
 scikit-learn
-decimal
 krakenex==2.1.0
 pykrakenapi==0.3.1
 configparser==5.3.0
