@@ -498,13 +498,15 @@ else:
         print(f"Mean Absolute Error (MAE): {mae:.2f}")
         print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
 
-        latest_timestamp = df.iloc[-1]["Timestamp"]
         
-        with open('predictedEthPrices.csv', 'w', newline='') as csvfile:
+        with open('predictedEthPrices.csv', 'a', newline='') as csvfile:
             fieldnames = ['TIME','PREDICTED ETH PRICES']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            
+            csvfile.seek(0, 2)  # Move the cursor to the end of the file
+            if csvfile.tell() == 0:  # If file position is 0, file is empty
+                writer.writeheader() 
 
-            writer.writeheader()
             writer.writerow({'TIME':timenow.datetime.now(),'PREDICTED ETH PRICES': predicted_next_price[0]})
         
         return predicted_next_price[0]
